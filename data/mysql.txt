@@ -1,0 +1,5 @@
+sudo service mysql status
+sudo service mysql stop
+sudo service mysql start
+
+mysql -u root -p

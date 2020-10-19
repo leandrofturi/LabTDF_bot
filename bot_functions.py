@@ -1,19 +1,21 @@
 import seaborn as sns
 import matplotlib.pyplot as plt
 from io import BytesIO
+from bot_database import mysql_db
+
 
 def plot():
-    sns.set_theme(style="darkgrid")
-    iris = sns.load_dataset("iris")
+    sns.set_theme(style='darkgrid')
+    iris = sns.load_dataset('iris')
 
     f, ax = plt.subplots(figsize=(8, 8))
-    ax.set_aspect("equal")
+    ax.set_aspect('equal')
 
     p = sns.kdeplot(
-        data=iris.query("species != 'versicolor'"),
-        x="sepal_width",
-        y="sepal_length",
-        hue="species",
+        data=iris.query('species != 'versicolor''),
+        x='sepal_width',
+        y='sepal_length',
+        hue='species',
         thresh=.1,
     ).get_figure()
     buf = BytesIO()
@@ -21,3 +23,4 @@ def plot():
     buf.seek(0)
     
     return(buf)
+#mysql -u root -p
