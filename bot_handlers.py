@@ -10,10 +10,10 @@ import bot_functions
 
 def start(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, 
-                             text="Sou um bot, por favor, fale comigo!")
+                             text='Sou um bot, por favor, fale comigo!')
 
 def help_command(update, context):
-    update.message.reply_text("Digite /start para testar bot.")
+    update.message.reply_text('Digite /start para testar bot.')
 
 def nada(update, context):
     kb = [[telegram.InlineKeyboardButton('nadica', callback_data='1')],
@@ -28,13 +28,13 @@ def button(update, context):
     
     if(query.data == '1'):
         context.bot.sendPhoto(chat_id=update.effective_chat.id, 
-                              photo="https://telegram.org/img/t_logo.png", 
-                              caption="Você escolheu nadica!")
+                              photo='https://telegram.org/img/t_logo.png', 
+                              caption='Você escolheu nadica!')
     elif(query.data == '2'):
         context.bot.sendPhoto(chat_id=update.effective_chat.id,
                               photo=bot_functions.plot())
     else:
-        query.edit_message_text(text="Você escolheu nada!")
+        query.edit_message_text(text='Você escolheu nada!')
 
 def echo(update, context):
     vowels = ('a','e','i','o','u','A','E','I','O','U')
@@ -68,7 +68,7 @@ def inline_caps(update, context):
     context.bot.answer_inline_query(update.inline_query.id, results)
 
 def unknown(update, context):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="Desculpe, não entendo esse comando.")
+    context.bot.send_message(chat_id=update.effective_chat.id, text='Desculpe, não entendo esse comando.')
 
 
 # Add handlers to dispatcher

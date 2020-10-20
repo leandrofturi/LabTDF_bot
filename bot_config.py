@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Credentials
-token = os.getenv("LabTDF_bot_token")
+token = os.getenv('LabTDF_bot_token')
 
 # Config
 updater = Updater(token=token, use_context=True)
