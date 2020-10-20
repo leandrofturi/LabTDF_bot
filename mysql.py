@@ -125,11 +125,19 @@ class MySQLpy:
             self.__close()
 
 
+    def normalize(self, str):
+        unicodedata.normalize('NFKD', str).encode('ascii', 'ignore').decode('utf8')
+        str.replace(' ', '_')
+        return str
+
+
     def xlsx_2mysql(self, table_name, path_xlsx, sheet_name=None):
         '''
         xlsx_2mysql Create or append an table by xlsx file.
         If the table exists, it will be appended.
         The file is readed by xlrd engine.
+        Note that if there are column names with non-alphanumeric characters, they will be removed, as well as accents.
+        Spaces will be replaced by underline.
 
         Args:
             table_name (text object): Name of table in database to be inserted.
@@ -142,6 +150,8 @@ class MySQLpy:
         df = pd.read_excel(path_xlsx, sheet_name=sheet_name, engine='xlrd')
         if sheet_name is None:
             df = next(iter(df.values()))
+        df.columns = df.columns.str.normalize('NFKD').str.encode('ascii', errors='ignore').str.decode('utf-8')
+        df.columns = df.columns.str.replace(' ', '_').str.replace(r'[^\w]', '').str.lower()
         toc = time.perf_counter()
         print('Elapsed time is ' + time.strftime('%H:%M:%S', time.gmtime(toc - tic)))
 
