@@ -125,12 +125,6 @@ class MySQLpy:
             self.__close()
 
 
-    def normalize(self, str):
-        unicodedata.normalize('NFKD', str).encode('ascii', 'ignore').decode('utf8')
-        str.replace(' ', '_')
-        return str
-
-
     def xlsx_2mysql(self, table_name, path_xlsx, sheet_name=None):
         '''
         xlsx_2mysql Create or append an table by xlsx file.
