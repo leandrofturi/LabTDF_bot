@@ -6,7 +6,7 @@ Mantido pelo Laboratório de Tribologia e Dinâmica Ferroviária - UFES.
 
 🕹 COMANDOS DISPONÍVEIS:
 /start exibe esta mensagem de boas-vindas.
-/help exibe esta mensagem de ajuda.
+/help exibe a mensagem de ajuda.
 /plot visualização gráfica de medições.
 
 —
