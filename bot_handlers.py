@@ -65,7 +65,7 @@ def get_type(update, context):
 def get_param(update, context):
     plot_argws['param'] = update.message.text
 
-    update.message.reply_text(f"Indique uma linha (e.g. 04/05 L1):",
+    update.message.reply_text(f"Indique uma linha:",
                               reply_markup=ReplyKeyboardRemove())
 
     return LINE
@@ -83,7 +83,7 @@ Selecione /lines para listar todas as linhas disponíveis""")
     if not to_delete is None:
         to_delete.delete()
         to_delete = None
-    update.message.reply_text(f"Indique um elemento (e.g. CURVA 3):")
+    update.message.reply_text(f"Indique um elemento:")
 
     return ELEMENT
 
@@ -105,20 +105,36 @@ Selecione /elements para listar todas os elementos disponíveis""")
 Local: {}
 Elemento: {}'''.format(plot_argws['type'], plot_argws['param'], plot_argws['line'], plot_argws['element'])
     update.message.reply_text(msg)
-    update.message.reply_text(bot_messages.searching)
+    to_delete = update.message.reply_text(bot_messages.searching)
     
     if plot_argws['type'] == '🎛️ Sensores':
         media = bot_functions.sensors_plot(plot_argws['line'], plot_argws['element'], plot_argws['param'])
 
     elif plot_argws['type'] == '🚧 Tabelas de contingência':
         if plot_argws['param'] == 'Severidade':
+            table = bot_functions.contingency_table(plot_argws['line'], plot_argws['element'], sev=True)
             media = bot_functions.contingency_plot(plot_argws['line'], plot_argws['element'], sev=True)
         elif plot_argws['param'] == 'Classificação ABCD':
+            table = bot_functions.contingency_table(plot_argws['line'], plot_argws['element'], sev=False)
             media = bot_functions.contingency_plot(plot_argws['line'], plot_argws['element'], sev=False)
         else:
             update.message.reply_text(bot_messages.unknown,
                                   reply_markup=ReplyKeyboardRemove())
             return ConversationHandler.END
+        
+        if table is None:
+            update.message.reply_text(bot_messages.unknown,
+                                    reply_markup=ReplyKeyboardRemove())
+            return ConversationHandler.END
+        
+        if not to_delete is None:
+            to_delete.delete()
+            to_delete = None
+        
+        context.bot.send_photo(chat_id=update.effective_chat.id, 
+                           photo=table, 
+                           reply_markup=ReplyKeyboardRemove())
+
     else:
         update.message.reply_text(bot_messages.understand)
         update.message.reply_text(bot_messages.instructions)
@@ -127,8 +143,8 @@ Elemento: {}'''.format(plot_argws['type'], plot_argws['param'], plot_argws['line
         update.message.reply_text(bot_messages.unknown,
                                   reply_markup=ReplyKeyboardRemove())
         return ConversationHandler.END
-        
-    elif isinstance(media, list):
+    
+    if isinstance(media, list):
         context.bot.send_media_group(chat_id=update.effective_chat.id, 
                                      media=media, 
                                      reply_markup=ReplyKeyboardRemove())
@@ -143,7 +159,6 @@ Elemento: {}'''.format(plot_argws['type'], plot_argws['param'], plot_argws['line
 def list_lines(update, context):
     global to_delete
 
-    # https://stackoverflow.com/questions/35634238/how-to-save-a-pandas-dataframe-table-as-a-png
     lines = bot_utils.list_lines()
     lines = [x for x in lines if x is not None]
     lines.sort()
