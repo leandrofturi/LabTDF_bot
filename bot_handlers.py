@@ -32,8 +32,8 @@ def plot(update, context):
     plot_argws = {'type': "", 'param': "", 'line': "", 'element': ""}
 
     update.message.reply_text("📈 Visualização gráfica de medições")
-    kb = [[KeyboardButton('🎛️ Sensores')],
-          [KeyboardButton('🚧 Tabelas de contingência')]]
+    kb = [[KeyboardButton(bot_messages.sensors)],
+          [KeyboardButton(bot_messages.contingency)]]
     kb_markup = ReplyKeyboardMarkup(kb, resize_keyboard=True, one_time_keyboard=True)
     update.message.reply_text("Selecione o tipo:", 
                               reply_markup=kb_markup)
@@ -43,15 +43,15 @@ def plot(update, context):
 def get_type(update, context):
     plot_argws['type'] = update.message.text
 
-    if update.message.text == '🎛️ Sensores':
+    if update.message.text == bot_messages.sensors:
         kb = [[KeyboardButton('3 segundos')],
              [KeyboardButton('20 segundos')]]
         kb_markup = ReplyKeyboardMarkup(kb, resize_keyboard=True, one_time_keyboard=True)
         update.message.reply_text('Selecione parâmetros adicionais', 
                                   reply_markup=kb_markup)
-    elif update.message.text == '🚧 Tabelas de contingência':
-        kb = [[KeyboardButton('Severidade')],
-             [KeyboardButton('Classificação ABCD')]]
+    elif update.message.text == bot_messages.contingency:
+        kb = [[KeyboardButton(bot_messages.severity)],
+             [KeyboardButton(bot_messages.abcd_classification)]]
         kb_markup = ReplyKeyboardMarkup(kb, resize_keyboard=True, one_time_keyboard=True)
         update.message.reply_text('Selecione parâmetros adicionais', 
                                   reply_markup=kb_markup)
@@ -72,12 +72,14 @@ def get_param(update, context):
 
 
 def get_line(update, context):
-    if not update.message.text in bot_utils.list_lines():
+    lines = bot_functions.list_lines(plot_argws)
+    lines = [l.casefold() for l in lines]
+    if not update.message.text.casefold() in lines:
         update.message.reply_text(f"""❌ Não foi possível identificar a linha: {update.message.text}\n\n
 Selecione /lines para listar todas as linhas disponíveis""")
         return LINE
 
-    plot_argws['line'] = update.message.text
+    plot_argws['line'] = update.message.text.upper()
 
     global to_delete
     if not to_delete is None:
@@ -89,12 +91,14 @@ Selecione /lines para listar todas as linhas disponíveis""")
 
 
 def get_element(update, context):
-    if not update.message.text in bot_utils.list_elements(plot_argws['line']):
+    elements = bot_functions.list_elements(plot_argws)
+    elements = [l.casefold() for l in elements]
+    if not update.message.text.casefold() in elements:
         update.message.reply_text(f"""❌ Não foi possível identificar o elemento: {update.message.text}\n\n
 Selecione /elements para listar todas os elementos disponíveis""")
         return ELEMENT
     
-    plot_argws['element'] = update.message.text
+    plot_argws['element'] = update.message.text.upper()
 
     global to_delete
     if not to_delete is None:
@@ -107,20 +111,12 @@ Elemento: {}'''.format(plot_argws['type'], plot_argws['param'], plot_argws['line
     update.message.reply_text(msg)
     to_delete = update.message.reply_text(bot_messages.searching)
     
-    if plot_argws['type'] == '🎛️ Sensores':
-        media = bot_functions.sensors_plot(plot_argws['line'], plot_argws['element'], plot_argws['param'])
+    if plot_argws['type'] == bot_messages.sensors:
+        media = bot_functions.sensors_plot(plot_argws)
 
-    elif plot_argws['type'] == '🚧 Tabelas de contingência':
-        if plot_argws['param'] == 'Severidade':
-            table = bot_functions.contingency_table(plot_argws['line'], plot_argws['element'], sev=True)
-            media = bot_functions.contingency_plot(plot_argws['line'], plot_argws['element'], sev=True)
-        elif plot_argws['param'] == 'Classificação ABCD':
-            table = bot_functions.contingency_table(plot_argws['line'], plot_argws['element'], sev=False)
-            media = bot_functions.contingency_plot(plot_argws['line'], plot_argws['element'], sev=False)
-        else:
-            update.message.reply_text(bot_messages.unknown,
-                                  reply_markup=ReplyKeyboardRemove())
-            return ConversationHandler.END
+    elif plot_argws['type'] == bot_messages.contingency:
+        table = bot_functions.contingency_table(plot_argws)
+        media = bot_functions.contingency_plot(plot_argws)
         
         if table is None:
             update.message.reply_text(bot_messages.unknown,
@@ -134,17 +130,15 @@ Elemento: {}'''.format(plot_argws['type'], plot_argws['param'], plot_argws['line
         context.bot.send_photo(chat_id=update.effective_chat.id, 
                            photo=table, 
                            reply_markup=ReplyKeyboardRemove())
-
     else:
         update.message.reply_text(bot_messages.understand)
         update.message.reply_text(bot_messages.instructions)
+        return ConversationHandler.END
 
     if media is None:
         update.message.reply_text(bot_messages.unknown,
                                   reply_markup=ReplyKeyboardRemove())
-        return ConversationHandler.END
-    
-    if isinstance(media, list):
+    elif isinstance(media, list):
         context.bot.send_media_group(chat_id=update.effective_chat.id, 
                                      media=media, 
                                      reply_markup=ReplyKeyboardRemove())
@@ -159,8 +153,7 @@ Elemento: {}'''.format(plot_argws['type'], plot_argws['param'], plot_argws['line
 def list_lines(update, context):
     global to_delete
 
-    lines = bot_utils.list_lines()
-    lines = [x for x in lines if x is not None]
+    lines = bot_functions.list_lines(plot_argws)
     lines.sort()
     lines = '\n'.join(lines)
     to_delete = update.message.reply_text(f"Linhas disponíveis\n\n{lines}")
@@ -172,8 +165,7 @@ def list_lines(update, context):
 def list_elements(update, context):
     global to_delete
     
-    elements = bot_utils.list_elements(plot_argws['line'])
-    elements = [x for x in elements if x is not None]
+    elements = bot_functions.list_elements(plot_argws)
     elements.sort()
     elements = '\n'.join(elements)
     to_delete = update.message.reply_text(f"Elementos disponíveis\n\n{elements}")
@@ -183,7 +175,8 @@ def list_elements(update, context):
 
 
 def cancel(update, context):
-    update.message.reply_text(bot_messages.cancel)
+    update.message.reply_text(bot_messages.cancel,
+			                  reply_markup=ReplyKeyboardRemove())
 
     return ConversationHandler.END
 

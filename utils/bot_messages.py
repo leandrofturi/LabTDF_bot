@@ -36,3 +36,9 @@ cancel = "❌ Operação cancelada!"
 searching = "⏳ Buscando dados..."
 unknown = "🤖 Desculpe, não entendi"
 understand = "🤖 Alguma coisa deu errado... Tente novamente"
+
+
+contingency = "🚧 Tabelas de contingência"
+sensors = "🎛️ Sensores"
+severity = "Severidade"
+abcd_classification = "Classificação ABCD"
