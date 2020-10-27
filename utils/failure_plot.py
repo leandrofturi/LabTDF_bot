@@ -19,7 +19,7 @@ def scatter_plot(data, x, y, title=None, xlabel=None, ylabel=None):
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    p = sns.scatterplot(data=data, x=x, y=y).get_figure()
+    p = sns.scatterplot(data=data, x=x, y=y).get_figure();
     return p
 
 
@@ -85,7 +85,7 @@ def render_mpl_table(data, col_width=3.0, row_height=0.625, font_size=10,
     return ax.get_figure(), ax
 
 
-def contingency_plot(df, line, element, clsf_name):
+def contingency_plot(df, line, element):
     """
     contingency_plot scatter plot das tabelas de contingência.
 
@@ -94,7 +94,6 @@ def contingency_plot(df, line, element, clsf_name):
             Veja que a coluna 'data' (data da informação) é obrigatória e 'severidade' ou 'classificação' são esperadas
         line (text object): Localização do trecho da via, em termos de Linha (GTG).
         element (text object): Elemento da via.
-        clsf_name (text object): Nome do objeto em contagem. Espera-se severidade ou classificação
 
     Yields:
         Figure: plot de uma severidade/classificação específica
@@ -103,8 +102,8 @@ def contingency_plot(df, line, element, clsf_name):
     dg = contingency_table(df)
     for i in [x for x in dg.columns if x != 'data']:
         p = scatter_plot(dg, 'data', i, 
-                         title=f'Localização: {line} - {element}', 
-                         xlabel='data', ylabel=f'contagem {clsf_name}\n{i}');
+                         title=f'{line}: {element}', 
+                         xlabel='data', ylabel=f'{i}');
         yield p
 
 

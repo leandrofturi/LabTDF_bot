@@ -1,59 +1,64 @@
 from utils.mysql import MySQLpy
-from sqlalchemy.sql import select, column
-from sqlalchemy import and_
+from sqlalchemy.sql import select
+from sqlalchemy import and_, or_
 from utils import failure_plot as f_plot
+from utils import bot_messages
 from telegram import InputMediaPhoto
 
 
-def contingency_table(line, element, sev=True):
+def contingency_table(plot_argws):
     db = MySQLpy('labtdf')
     tb = db.table('vagao')
-    
-    if sev:
+
+    if plot_argws['param'] == bot_messages.severity:
         stmt = select([tb.c.data, tb.c.severidades]).where(
-            and_(tb.c.linha_gtg == line, tb.c.elemento_cc == element))
-    else:
+            and_(tb.c.linha_gtg.ilike(plot_argws['line']), tb.c.elemento_cc.ilike(plot_argws['element'])))
+    elif plot_argws['param'] == bot_messages.abcd_classification:
         stmt = select([tb.c.data, tb.c.classificacao_abcd]).where(
-            and_(tb.c.linha_gtg == line, tb.c.elemento_cc == element))
+            and_(tb.c.linha_gtg.ilike(plot_argws['line']), tb.c.elemento_cc.ilike(plot_argws['element'])))
+    else:
+        return None
     
     df = db.read_sql(stmt)
     df = f_plot.contingency_table(df)
-    fig, _ = f_plot.render_mpl_table(df, header_columns=0, col_width=2.0)
+    fig, _ = f_plot.render_mpl_table(df, header_columns=0, col_width=2.0);
     media = f_plot.serialize(fig)
     
     return media
 
 
-def contingency_plot(line, element, sev=True):
+def contingency_plot(plot_argws):
     db = MySQLpy('labtdf')
     tb = db.table('vagao')
     
-    if sev:
-        clsf_name = 'severidade'
+    if plot_argws['param'] == bot_messages.severity:
         stmt = select([tb.c.data, tb.c.severidades]).where(
-            and_(tb.c.linha_gtg == line, tb.c.elemento_cc == element))
-    else:
-        clsf_name = 'classificação'
+            and_(tb.c.linha_gtg.ilike(plot_argws['line']), tb.c.elemento_cc.ilike(plot_argws['element'])))
+    elif plot_argws['param'] == bot_messages.abcd_classification:
         stmt = select([tb.c.data, tb.c.classificacao_abcd]).where(
-            and_(tb.c.linha_gtg == line, tb.c.elemento_cc == element))
+            and_(tb.c.linha_gtg.ilike(plot_argws['line']), tb.c.elemento_cc.ilike(plot_argws['element'])))
+    else:
+        return None
     
     df = db.read_sql(stmt)
     
+    figs = f_plot.contingency_plot(df, plot_argws['line'], plot_argws['element'])
     if df.iloc[:,1].nunique() == 1:
-        media = [f_plot.serialize(p) for p in f_plot.contingency_plot(df, line, element, clsf_name)]
-        media = next(iter(media))
+        media = [f_plot.serialize(p) for p in figs];
+        media = next(iter(media));
     else:
-        media = [InputMediaPhoto(media=f_plot.serialize(p)) for p in f_plot.contingency_plot(df, line, element, clsf_name)]
+        media = [InputMediaPhoto(media=f_plot.serialize(p)) for p in figs];
     return media
 
 
-def sensors_plot(line, element, time):
+def sensors_plot(plot_argws):
     db = MySQLpy('labtdf')
     tb = db.table('vagao')
 
+    time = plot_argws['param']
     time = time.replace(' ', '_')
     sensors_name = [f'aceleracao_g_{time}', f'bodyrock_mm_{time}', 
-                    f'bounce_mm_{time}', f'suspentiontravel _mm_{time}']
+                    f'bounce_mm_{time}', f'suspentiontravel_mm_{time}']
     colnames = [p.name for p in tb.c]
     sensors_name = [p for p in sensors_name if p in colnames]
     if len(sensors_name) == 0:
@@ -64,9 +69,62 @@ def sensors_plot(line, element, time):
     stmt = select(stmt)
     df = db.read_sql(stmt)
     
+    sensors_name = [p.split('_')[0] for p in sensors_name]
+    figs = f_plot.sensor_plot(df, plot_argws['line'], plot_argws['element'], sensors_name)
     if len(df.columns) == 2:
-        media = [f_plot.serialize(p) for p in f_plot.sensor_plot(df, line, element, sensors_name)]
-        media = next(iter(media))
+        media = [f_plot.serialize(p) for p in figs];
+        media = next(iter(media));
     else:
-        media = [InputMediaPhoto(media=f_plot.serialize(p)) for p in f_plot.sensor_plot(df, line, element, sensors_name)]
+        media = [InputMediaPhoto(media=f_plot.serialize(p)) for p in figs];
     return media
+
+
+def list_elements(plot_argws):
+    db = MySQLpy('labtdf')
+    tb = db.table('vagao')
+    
+    if plot_argws['type'] == bot_messages.sensors:
+        stmt = select([tb.c.elemento_cc]).where(tb.c.linha_gtg.ilike(plot_argws['line'])).distinct()
+    elif plot_argws['type'] == bot_messages.contingency:
+        if plot_argws['param'] == bot_messages.severity:
+            stmt = select([tb.c.elemento_cc]).where(tb.c.linha_gtg.ilike(plot_argws['line'])).distinct()
+        elif plot_argws['param'] == bot_messages.abcd_classification:
+            stmt = select([tb.c.elemento_cc]).where(tb.c.linha_gtg.ilike(plot_argws['line'])).distinct()
+        else:
+            return None
+    else:
+        return None
+    
+    df = db.read_sql(stmt)
+    
+    return df.iloc[:,0].tolist()
+
+
+def list_lines(plot_argws):
+    db = MySQLpy('labtdf')
+    tb = db.table('vagao')
+    
+    if plot_argws['type'] == bot_messages.sensors:
+        time = plot_argws['param']
+        time = time.replace(' ', '_')
+        stmt = select([tb.c.linha_gtg]).where(and_(tb.c.elemento_cc != None,
+                                                   tb.c.linha_gtg != None,
+                                                   or_(tb.c[f'aceleracao_g_{time}'] != None,
+                                                       tb.c[f'bodyrock_mm_{time}'] != None,
+                                                       tb.c[f'bounce_mm_{time}'] != None,
+                                                       tb.c[f'suspentiontravel_mm_{time}'] != None))).distinct()
+    elif plot_argws['type'] == bot_messages.contingency:
+        if plot_argws['param'] == bot_messages.severity:
+            stmt = select([tb.c.linha_gtg]).where(and_(tb.c.elemento_cc != None,
+                                                       tb.c.linha_gtg != None,
+                                                       tb.c.severidades != None)).distinct()
+        elif plot_argws['param'] == bot_messages.abcd_classification:
+            stmt = select([tb.c.linha_gtg]).where(and_(tb.c.elemento_cc != None,
+                                                       tb.c.linha_gtg != None,
+                                                       tb.c.classificacao_abcd != None)).distinct()
+    else:
+        return None
+    
+    df = db.read_sql(stmt)
+
+    return df.iloc[:,0].tolist()
