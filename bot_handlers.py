@@ -8,7 +8,7 @@ from utils import bot_utils
 import bot_functions
 
 
-# --- start and help ---
+# --- start and help comands ---
 
 def start(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, 
@@ -16,6 +16,7 @@ def start(update, context):
 
 def help_command(update, context):
     update.message.reply_text(bot_messages.helpMessage)
+
 
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(CommandHandler('help', help_command))
@@ -207,3 +208,13 @@ plot_conversation_handler = ConversationHandler(
 )                
 
 dispatcher.add_handler(plot_conversation_handler)
+
+
+# --- unknown comands ---
+
+def unknown(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, 
+                             text=bot_messages.unknown)
+
+
+dispatcher.add_handler(MessageHandler(Filters.command, unknown))

@@ -3,21 +3,24 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from io import BytesIO
+import locale
 
-plt.style.use('ggplot')
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 
 def serialize(plt):
     buf = BytesIO()
-    plt.savefig(buf, format='JPEG')
+    plt.savefig(buf, format='JPEG', bbox_inches="tight")
     buf.seek(0)
     return buf
 
 
 def scatter_plot(data, x, y, title=None, xlabel=None, ylabel=None):
+    plt.style.use('ggplot')
     plt.figure()
     plt.title(title)
     plt.xlabel(xlabel)
+    plt.xticks(rotation=45)
     plt.ylabel(ylabel)
     p = sns.scatterplot(data=data, x=x, y=y).get_figure();
     return p
@@ -81,7 +84,7 @@ def render_mpl_table(data, col_width=3.0, row_height=0.625, font_size=10,
             cell.set_text_props(weight='bold', color='k')
             cell.set_facecolor(header_color)
         else:
-            cell.set_facecolor(row_colors[k[0]%len(row_colors) ])
+            cell.set_facecolor(row_colors[k[0]%len(row_colors)])
     return ax.get_figure(), ax
 
 
