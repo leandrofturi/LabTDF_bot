@@ -7,7 +7,9 @@ Mantido pelo Laboratório de Tribologia e Dinâmica Ferroviária - UFES.
 🕹 COMANDOS DISPONÍVEIS:
 /start exibe esta mensagem de boas-vindas.
 /help exibe a mensagem de ajuda.
-/plot visualização gráfica de medições.
+/elemento visualização gráfica de medições a partir de um elemento.
+/km visualização gráfica de medições a partir de uma posição.
+/cancel cancela a operação atual.
 
 —
 Mantido pelo Laboratório de Tribologia e Dinâmica Ferroviária - UFES
@@ -20,10 +22,12 @@ Para utilizar o 🤖 bot, envie alguns destes comandos:
 🕹 COMANDOS DISPONÍVEIS:
 /start exibe a mensagem de boas-vindas.
 /help exibe esta mensagem de ajuda.
-/plot visualização gráfica de medições.
+/elemento visualização gráfica de medições a partir de um elemento.
+/km visualização gráfica de medições a partir de uma posição.
+/cancel cancela a operação atual.
 
 
-📖 *Bot open-source*:
+📖 Bot open-source:
 https://github.com/leandrofturi/LabTDF_bot
 
 —
@@ -31,13 +35,14 @@ Mantido pelo Laboratório de Tribologia e Dinâmica Ferroviária - UFES
 Criado por @furlamos e @VitaoCap
 """
 
-instructions = "❔ Instruções de uso: clique em /help ou /ajuda."
+instructions = "❔ Instruções de uso: clique em /help."
 cancel = "❌ Operação cancelada!"
 searching = "⏳ Buscando dados..."
 unknown = "🤖 Desculpe, não entendi"
 understand = "🤖 Alguma coisa deu errado... Tente novamente"
 
 
+plot = "📈 Visualização gráfica de medições"
 contingency = "🚧 Tabelas de contingência"
 sensors = "🎛️ Sensores"
 severity = "Severidade"

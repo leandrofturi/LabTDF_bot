@@ -3,9 +3,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from io import BytesIO
-import locale
 
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+# Style
+style='ggplot'
+
+# Colors
+laranja='#ca571a'
+cinza='#6f6f6e'
 
 
 def serialize(plt):
@@ -15,41 +19,21 @@ def serialize(plt):
     return buf
 
 
-def scatter_plot(data, x, y, title=None, xlabel=None, ylabel=None):
-    plt.style.use('ggplot')
+def scatter_plot(data, x, y, xlabel=None, ylabel=None):
     plt.figure()
-    plt.title(title)
+    plt.style.use(style)
     plt.xlabel(xlabel)
     plt.xticks(rotation=45)
     plt.ylabel(ylabel)
-    p = sns.scatterplot(data=data, x=x, y=y).get_figure();
+    p = sns.scatterplot(data=data, x=x, y=y, color=laranja).get_figure();
     return p
-
-
-def contingency_table(df):
-    """
-    contingency_table Construção das tabelas de contingência.
-
-    Args:
-        df (DataFrame): DataFrame contendo os dados para construção das tabelas. 
-            Veja que a coluna 'data' (data da informação) é obrigatória e 'severidade' ou 'classificação' são esperadas
-
-    Returns:
-        DataFrame: Tabela de contingência
-    """
-
-    c = [x for x in df.columns if x != 'data']
-    dg = pd.get_dummies(df, columns=c, prefix=[""], prefix_sep=[""])
-    dg = pd.pivot_table(dg, index=['data'], aggfunc=np.sum)
-    dg.reset_index(level=0, inplace=True)
-    return dg
 
 
 def render_mpl_table(data, col_width=3.0, row_height=0.625, font_size=10,
                      header_color='#c0c0c0', row_colors=['#f1f1f2', 'w'], edge_color='w',
                      bbox=[0, 0, 1, 1], header_columns=0,
                      ax=None, **kwargs):
-    """
+    '''
     render_mpl_table Salva um Pandas DataFrame/Series como uma figura
     https://stackoverflow.com/questions/19726663/how-to-save-the-pandas-dataframe-series-data-as-a-figure
 
@@ -68,7 +52,7 @@ def render_mpl_table(data, col_width=3.0, row_height=0.625, font_size=10,
     Returns:
         Figure: Figure
         axes.Axes: Axes
-    """
+    '''
 
     if ax is None:
         size = (np.array(data.shape[::-1]) + np.array([0, 1])) * np.array([col_width, row_height])
@@ -88,47 +72,102 @@ def render_mpl_table(data, col_width=3.0, row_height=0.625, font_size=10,
     return ax.get_figure(), ax
 
 
-def contingency_plot(df, line, element):
-    """
+def contingency_table(df, x, xlabel, clfs):
+    '''
+    contingency_table Construção das tabelas de contingência.
+
+    Args:
+        df (DataFrame): DataFrame contendo os dados para construção das tabelas. 
+        x (text object): Nome da coluna no DataFrame contendo os dados do eixo x (e.g. data).
+        clfs (List of text object): Nomes das colunas no DataFrame contendo os dados de contingência (e.g. 'severidade').
+
+    Returns:
+        DataFrame: Tabela de contingência
+    '''
+
+    dg = pd.get_dummies(df, columns=[clfs], prefix=[""], prefix_sep=[""])
+    dg = pd.pivot_table(dg, index=x, aggfunc=np.sum)
+    dg.reset_index(level=0, inplace=True)
+    dg.columns = [xlabel] + dg.columns[1:].tolist()
+    return dg
+
+
+def contingency_plot(df, x, clfs, xlabel):
+    '''
     contingency_plot scatter plot das tabelas de contingência.
 
     Args:
-        df (DataFrame): Tabela contendo os dados a serem visualizados.
-            Veja que a coluna 'data' (data da informação) é obrigatória e 'severidade' ou 'classificação' são esperadas
-        line (text object): Localização do trecho da via, em termos de Linha (GTG).
-        element (text object): Elemento da via.
+        df (DataFrame): Dados a serem visualizados.
+        x (text object): Nome da coluna no DataFrame contendo os dados do eixo x (e.g. data).
+        clfs (List of text object): Nomes das colunas no DataFrame contendo os dados de contingência (e.g. 'severidade').
+        xlabel (text object)
 
     Yields:
         Figure: plot de uma severidade/classificação específica
-    """        
+    '''        
 
-    dg = contingency_table(df)
-    for i in [x for x in dg.columns if x != 'data']:
-        p = scatter_plot(dg, 'data', i, 
-                         title=f'{line}: {element}', 
-                         xlabel='data', ylabel=f'{i}');
+    dg = contingency_table(df, x, xlabel, clfs)
+    for i in [y for y in dg.columns if y != xlabel]:
+        p = scatter_plot(dg, xlabel, i, 
+                         xlabel=xlabel, ylabel=f'{i}')
         yield p
 
 
-def sensor_plot(df, line, element, sensors_name):
-    """
-    sensor_plot scatter plot dos dados dos sensores (Aceleração, Bounce, Rock e Suspention Travel).
+def sensor_plot(df, x, sensors, xlabel, sensors_name):
+    '''
+    sensor_plot scatter plot dos dados dos sensores (e.g.: Aceleração, Bounce, Rock e Suspention Travel).
 
     Args:
-        df (DataFrame): Tabela contendo os dados a serem visualizados.
-            Veja que a coluna 'data' (data da informação) é obrigatória e os dados dos sensores são esperados.
-        line (text object): Localização do trecho da via, em termos de Linha (GTG).
-        element (text object): Elemento da via.
-        sensors_name (list): Nome dos sensores a serem visualizados.
+        df (DataFrame): Dados a serem visualizados.
+        x (text object): Nome da coluna no DataFrame contendo os dados do eixo x (e.g. data).
+        sensors (List of text object): Nomes das colunas no DataFrame contendo os dados dos sensores.
+        xlabel (text object)
+        sensors_name (List): Nome dos sensores a serem visualizados.
             Note que a ordem deve estar de acordo com a ordem das colunas de df.
 
     Yields:
         Figure: plot de um sensor específico
-    """
-        
+    '''
+
     s = iter(sensors_name)
-    for i in [x for x in df.columns if x != 'data']:
-        p = scatter_plot(df, 'data', i, 
-                         title=f'Localização: {line} - {element}', 
-                         xlabel='data', ylabel=f'{next(s)}');
+    for i in sensors:
+        p = scatter_plot(df, x, i, 
+                         xlabel=xlabel, ylabel=f'{next(s)}');
         yield p
+
+
+def rest_velocidade_plot(df, x, y, lim_y, lim_label, xlabel, ylabel):
+    '''
+    rest_vel_plot Visualização de restrição de velocidade.
+
+    Args:
+        df (DataFrame): Dados a serem visualizados.
+        x (text object): Nome da coluna no DataFrame contendo os dados do eixo x (e.g. velocidade).
+        y (text object): Nome da coluna no DataFrame contendo os dados do eixo y (e.g. bounce).
+        lim_y (List): Limites especificados (e.g. limites de severidade para bounce).
+        lim_label (List): Label dos limites especificados. Mesmo tamanho de lim_y.
+        xlabel (text object)
+        ylabel (text object)
+
+    Returns:
+        Figure.
+    '''    
+
+    pn = np.poly1d(np.polyfit(df[x], df[y], 1))
+    Y = pn(df[y])
+    ci = 1.96*np.std(Y)/np.mean(Y)
+
+    p = plt.figure()
+    plt.style.use(style)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.plot(df[x], df[y], color=laranja, marker=".", linestyle='None')
+
+    plt.plot(df[x], Y, color=cinza, linestyle='-')
+    plt.fill_between(x, (Y-ci), (Y+ci), color=cinza, alpha=.25)
+
+    for i in lim_y.len():
+        plt.plot(df[x], np.repeat(lim_y[i], x.size, axis=0), color='black', linestyle='--')
+        plt.text(0, lim_y[i]+0.1, lim_label[i])
+
+    return p.get_figure()
