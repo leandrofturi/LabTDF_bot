@@ -20,24 +20,32 @@ def start(update, context):
 def help_command(update, context):
     update.message.reply_text(bot_messages.helpMessage)
 
-
+ 
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(CommandHandler('help', help_command))
 
 
+to_delete = None
+
 # --- plots ---
 
-plot_argws = {'km': "", 'element': "", 'line': "", 'type': "", 'param': ""}
 KM, ELEMENT, LINE, TYPE, PARAM = range(5)
-to_delete = None
+plot_argws = {'by': "", # E: element/line, K: km
+              'km': "", 
+              'element': "", 'line': "", 
+              'type': "", 'param': ""}
+
+def blanc_plot_argws():
+    global plot_argws
+    plot_argws = {'by': "",'km': "",'element': "",'line': "",'type': "",'param': ""}
+    return plot_argws
+
 
 # --- plots by line/element ---
 
-
 def plot_elements(update, context):
-    global plot_argws
-    plot_argws = {'km': "", 'element': "", 'line': "", 'type': "", 'param': ""}
-    plot_argws['km'] = None
+    plot_argws = blanc_plot_argws()
+    plot_argws['by'] = 'E'
 
     update.message.reply_text(bot_messages.plot,
                               reply_markup=ReplyKeyboardRemove())
@@ -78,8 +86,10 @@ Selecione /linhas para listar todas as linhas disponíveis""")
     if not to_delete is None:
         to_delete.delete()
         to_delete = None
+
     kb = [[KeyboardButton(bot_messages.sensors)],
-          [KeyboardButton(bot_messages.contingency)]]
+          [KeyboardButton(bot_messages.contingency)],
+          [KeyboardButton(bot_messages.speed_restriction)]]
     kb_markup = ReplyKeyboardMarkup(kb, resize_keyboard=True, one_time_keyboard=True)
     update.message.reply_text("Selecione o tipo:", 
                               reply_markup=kb_markup)
@@ -91,17 +101,23 @@ def get_type(update, context):
     plot_argws['type'] = update.message.text
 
     if update.message.text == bot_messages.sensors:
-        kb = [[KeyboardButton('3 segundos')],
-             [KeyboardButton('20 segundos')]]
+        kb = [[KeyboardButton(bot_messages.three_seconds)],
+             [KeyboardButton(bot_messages.twenty_seconds)]]
+        msg = "Selecione o período:"
     elif update.message.text == bot_messages.contingency:
         kb = [[KeyboardButton(bot_messages.severity)],
              [KeyboardButton(bot_messages.abcd_classification)]]
+        msg = "Selecione o tipo de contingência:"
+    elif update.message.text == bot_messages.speed_restriction:
+        kb = [[KeyboardButton(bot_messages.acceleration), KeyboardButton(bot_messages.bodyrock)],
+              [KeyboardButton(bot_messages.suspentiontravel), KeyboardButton(bot_messages.bounce)]]
+        msg = "Selecione a variável dinâmica:"
     else:
         update.message.reply_text(bot_messages.unknown)
         return TYPE
 
     kb_markup = ReplyKeyboardMarkup(kb, resize_keyboard=True, one_time_keyboard=True)
-    update.message.reply_text('Selecione parâmetros adicionais', 
+    update.message.reply_text(msg, 
                               reply_markup=kb_markup)
 
     return PARAM
@@ -110,15 +126,15 @@ def get_type(update, context):
 def get_param(update, context):
     plot_argws['param'] = update.message.text
 
-    if plot_argws['km'] is None:
+    if plot_argws['by'] == 'E':
         msg = '{}\n{}\nLinha: {}\nElemento: {}'.format(plot_argws['type'], 
                                                        plot_argws['param'], 
                                                        plot_argws['line'], 
                                                        plot_argws['element'])
-    elif plot_argws['element'] is None:
+    elif plot_argws['by'] == 'K':
         msg = '{}\n{}\nKm {}'.format(plot_argws['type'], 
-                                          plot_argws['param'], 
-                                          plot_argws['km'])
+                                     plot_argws['param'], 
+                                     plot_argws['km'])
     else:
         wrong_plot(update, context)
 
@@ -134,6 +150,9 @@ def get_param(update, context):
         table = bot_functions.contingency_table(plot_argws)
         media = bot_functions.contingency_plot(plot_argws)
 
+    elif plot_argws['type'] == bot_messages.speed_restriction:
+        media = bot_functions.rest_velocidade_plot(plot_argws)
+
     else:
         wrong_plot(update, context)
 
@@ -145,7 +164,7 @@ def get_param(update, context):
         context.bot.send_photo(chat_id=update.effective_chat.id, 
                                photo=table)
     if media is None:
-        update.message.reply_text(bot_messages.unknown)
+        update.message.reply_text(bot_messages.understand)
     elif isinstance(media, list):
         context.bot.send_media_group(chat_id=update.effective_chat.id, 
                                      media=media)
@@ -181,9 +200,8 @@ def list_lines(update, context):
 # --- plots by km ---
 
 def plot_km(update, context):
-    global plot_argws
-    plot_argws = {'km': "", 'element': "", 'line': "", 'type': "", 'param': ""}
-    plot_argws['element'] = None
+    plot_argws = blanc_plot_argws()
+    plot_argws['by'] = 'K'
     
     lo, hi = bot_functions.range_km()
     update.message.reply_text(bot_messages.plot,
@@ -207,7 +225,8 @@ Indique uma posição entre %.2f e %.2f:""" % (lo, hi))
     plot_argws['km'] = km
 
     kb = [[KeyboardButton(bot_messages.sensors)],
-          [KeyboardButton(bot_messages.contingency)]]
+          [KeyboardButton(bot_messages.contingency)],
+          [KeyboardButton(bot_messages.speed_restriction)]]
     kb_markup = ReplyKeyboardMarkup(kb, resize_keyboard=True, one_time_keyboard=True)
     update.message.reply_text("Selecione o tipo:", 
                               reply_markup=kb_markup)
@@ -266,6 +285,7 @@ dispatcher.add_handler(plot_conversation_handler)
 
 def unknown(update, context):
     context.bot.send_message(chat_id=update.effective_chat.id, 
-                             text=bot_messages.unknown)
+                             text=bot_messages.unknown, 
+                             reply_markup=ReplyKeyboardRemove())
 
 dispatcher.add_handler(MessageHandler(Filters.command, unknown))

@@ -56,8 +56,8 @@ def render_mpl_table(data, col_width=3.0, row_height=0.625, font_size=10,
 
     if ax is None:
         size = (np.array(data.shape[::-1]) + np.array([0, 1])) * np.array([col_width, row_height])
-        _, ax = plt.subplots(figsize=size);
-        ax.axis('off');
+        _, ax = plt.subplots(figsize=size)
+        ax.axis('off')
     mpl_table = ax.table(cellText=data.values, bbox=bbox, colLabels=data.columns, **kwargs)
     mpl_table.auto_set_font_size(False)
     mpl_table.set_fontsize(font_size)
@@ -132,13 +132,13 @@ def sensor_plot(df, x, sensors, xlabel, sensors_name):
     s = iter(sensors_name)
     for i in sensors:
         p = scatter_plot(df, x, i, 
-                         xlabel=xlabel, ylabel=f'{next(s)}');
+                         xlabel=xlabel, ylabel=f'{next(s)}')
         yield p
 
 
 def rest_velocidade_plot(df, x, y, lim_y, lim_label, xlabel, ylabel):
     '''
-    rest_vel_plot Visualização de restrição de velocidade.
+    rest_velocidade_plot Visualização de restrição de velocidade.
 
     Args:
         df (DataFrame): Dados a serem visualizados.
@@ -157,17 +157,17 @@ def rest_velocidade_plot(df, x, y, lim_y, lim_label, xlabel, ylabel):
     Y = pn(df[y])
     ci = 1.96*np.std(Y)/np.mean(Y)
 
-    p = plt.figure()
+    plt.figure()
     plt.style.use(style)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.plot(df[x], df[y], color=laranja, marker=".", linestyle='None')
 
     plt.plot(df[x], Y, color=cinza, linestyle='-')
-    plt.fill_between(x, (Y-ci), (Y+ci), color=cinza, alpha=.25)
+    plt.fill_between(df[x], (Y-ci), (Y+ci), color=cinza, alpha=.25)
 
-    for i in lim_y.len():
-        plt.plot(df[x], np.repeat(lim_y[i], x.size, axis=0), color='black', linestyle='--')
-        plt.text(0, lim_y[i]+0.1, lim_label[i])
+    for i in range(lim_y.size):
+        plt.plot(df[x], np.repeat(lim_y[i], df[x].size, axis=0), color='black', linestyle='--')
+        plt.text(df[x].min(), lim_y[i]+0.1, lim_label[i])
 
-    return p.get_figure()
+    return plt.gcf()
