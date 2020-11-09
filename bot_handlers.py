@@ -3,8 +3,7 @@ from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ConversationHandler, Filters, MessageHandler
 
 from bot_config import dispatcher
-from utils import bot_messages
-from utils import bot_utils
+from utils import bot_messages, bot_utils
 import bot_functions
 import locale
 from locale import atof
@@ -134,7 +133,7 @@ def get_param(update, context):
     elif plot_argws['by'] == 'K':
         msg = '{}\n{}\nKm {}'.format(plot_argws['type'], 
                                      plot_argws['param'], 
-                                     plot_argws['km'])
+                                     ','.join(map(str, plot_argws['km'])))
     else:
         wrong_plot(update, context)
 
@@ -206,7 +205,7 @@ def plot_km(update, context):
     lo, hi = bot_functions.range_km()
     update.message.reply_text(bot_messages.plot,
                               reply_markup=ReplyKeyboardRemove())
-    update.message.reply_text("Indique uma posição entre %.2f e %.2f:" % (lo, hi))
+    update.message.reply_text("Indique uma ou mais posições entre %.2f e %.2f separadas por vírgula:" % (lo, hi))
 
     return KM
 
@@ -214,19 +213,24 @@ def plot_km(update, context):
 def get_km(update, context):
     lo, hi = bot_functions.range_km()
     try:
-        km = atof(update.message.text.replace('.',','))
+        km = update.message.text
+        km = [atof(k.strip().replace('.',',')) for k in km.split(',')]
     except ValueError:
-        km = None
-    if km is None or km < lo or km > hi:
-        update.message.reply_text(f"""❌ Posição {update.message.text} incorreta!\n\n
-Indique uma posição entre %.2f e %.2f:""" % (lo, hi))
-        return KM
+        km = [None]
+    for k in km:
+        if k is None or k < lo or k > hi:
+            update.message.reply_text(f"""❌ Posição {k} incorreta!\n\n
+Indique uma ou mais posições entre %.2f e %.2f separadas por vírgula:""" % (lo, hi))
+            return KM
 
     plot_argws['km'] = km
 
-    kb = [[KeyboardButton(bot_messages.sensors)],
-          [KeyboardButton(bot_messages.contingency)],
-          [KeyboardButton(bot_messages.speed_restriction)]]
+    if len(km) > 1:
+        kb = [[KeyboardButton(bot_messages.speed_restriction)]]
+    else:
+        kb = [[KeyboardButton(bot_messages.sensors)],
+              [KeyboardButton(bot_messages.contingency)],
+              [KeyboardButton(bot_messages.speed_restriction)]]
     kb_markup = ReplyKeyboardMarkup(kb, resize_keyboard=True, one_time_keyboard=True)
     update.message.reply_text("Selecione o tipo:", 
                               reply_markup=kb_markup)

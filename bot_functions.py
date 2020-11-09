@@ -1,10 +1,9 @@
 import pandas as pd
 import numpy as np
+from utils import failure_plot as f_plot, bot_messages
 from utils.mysql import MySQLpy
 from sqlalchemy.sql import select
 from sqlalchemy import and_, or_
-from utils import failure_plot as f_plot
-from utils import bot_messages
 from telegram import InputMediaPhoto
 
 
@@ -189,17 +188,24 @@ def rest_velocidade_plot(plot_argws):
         return None
 
     if plot_argws['by'] == 'E':
-        stmt = select([tb.c.velocidadekmh, tb.c[plot_argws['param']]]) \
+        stmt = [select([tb.c.velocidadekmh, tb.c[plot_argws['param']]]) \
                 .where(and_(tb.c.linha_gtg.ilike(plot_argws['line']), 
-                            tb.c.elemento_cc.ilike(plot_argws['element'])))
+                            tb.c.elemento_cc.ilike(plot_argws['element'])))]
     elif plot_argws['by'] == 'K':
-        stmt = select([tb.c.velocidadekmh, tb.c[plot_argws['param']]]) \
-            .where(and_(tb.c.km_ini_cc + tb.c.metro_ini_cc/1000 <= plot_argws['km'],
-                   tb.c.km_fim_cc + tb.c.metro_fim_cc/1000 >= plot_argws['km']))
+        if plot_argws['km'] is None:
+            return None
+        elif isinstance(plot_argws['km'], list):
+            stmt = [select([tb.c.velocidadekmh, tb.c[plot_argws['param']]]) \
+                .where(and_(tb.c.km_ini_cc + tb.c.metro_ini_cc/1000 <= km,
+                       tb.c.km_fim_cc + tb.c.metro_fim_cc/1000 >= km)) for km in plot_argws['km']]
+        else:
+            stmt = [select([tb.c.velocidadekmh, tb.c[plot_argws['param']]]) \
+                .where(and_(tb.c.km_ini_cc + tb.c.metro_ini_cc/1000 <= plot_argws['km'],
+                       tb.c.km_fim_cc + tb.c.metro_fim_cc/1000 >= plot_argws['km']))]
     else:
         return None
 
-    df = db.read_sql(stmt)
+    dfs = [db.read_sql(s) for s in stmt]
 
     lim_sev = pd.DataFrame(np.array([[46, 16, 23, 11], [22, 9, 15, 6], [11, 6, 8, 3]]),
                        columns=['aceleracao_g','suspentiontravel_mm','bodyrock_mm','bounce_mm'])
@@ -214,8 +220,17 @@ def rest_velocidade_plot(plot_argws):
     else:
         ylabel = ""
 
-    p = f_plot.rest_velocidade_plot(df, 'velocidadekmh', plot_argws['param'], 
-                                    lim_sev[plot_argws['param']], 
-                                    ["S1","S2","S3"], "Velocidade (km/h)", ylabel)
+    if len(dfs) == 1:
+        p = f_plot.rest_velocidade_plot(dfs[0], 'velocidadekmh', plot_argws['param'], 
+                                        lim_sev[plot_argws['param']], 
+                                        ["S1","S2","S3"], "Velocidade (km/h)", ylabel)
+    else:
+        kwargs = dict(zip(["Km " + str(k) for k in plot_argws['km']], dfs))
+        p = f_plot.comp_velocidade_plot('velocidadekmh', plot_argws['param'], 
+                                        lim_sev[plot_argws['param']], 
+                                        ["S1","S2","S3"], "Velocidade (km/h)", ylabel, 
+                                        **kwargs)
+    
     media = f_plot.serialize(p)
     return media
+    

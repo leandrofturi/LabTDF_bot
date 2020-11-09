@@ -1,5 +1,3 @@
-# Plain strings for the bot
-
 welcomeMessage = """🚂 @LabTDF_bot
 Olá! Este 🤖 bot pode enviar gráficos e informações úteis disponíveis de dinâmica ferroviária.
 

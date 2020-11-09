@@ -130,3 +130,8 @@ dmypy.json
 
 # Files
 *.txt
+
+# Test
+test/
+
+__pycache__/
