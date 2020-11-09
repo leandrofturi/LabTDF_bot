@@ -10,6 +10,7 @@ style='ggplot'
 # Colors
 laranja='#ca571a'
 cinza='#6f6f6e'
+terra='#57473f'
 
 
 def serialize(plt):
@@ -25,7 +26,7 @@ def scatter_plot(data, x, y, xlabel=None, ylabel=None):
     plt.xlabel(xlabel)
     plt.xticks(rotation=45)
     plt.ylabel(ylabel)
-    p = sns.scatterplot(data=data, x=x, y=y, color=laranja).get_figure();
+    p = sns.scatterplot(data=data, x=x, y=y, color=laranja).get_figure()
     return p
 
 
@@ -153,21 +154,59 @@ def rest_velocidade_plot(df, x, y, lim_y, lim_label, xlabel, ylabel):
         Figure.
     '''    
 
-    pn = np.poly1d(np.polyfit(df[x], df[y], 1))
-    Y = pn(df[y])
-    ci = 1.96*np.std(Y)/np.mean(Y)
-
     plt.figure()
     plt.style.use(style)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.plot(df[x], df[y], color=laranja, marker=".", linestyle='None')
 
-    plt.plot(df[x], Y, color=cinza, linestyle='-')
-    plt.fill_between(df[x], (Y-ci), (Y+ci), color=cinza, alpha=.25)
+    pn = np.poly1d(np.polyfit(df[x], df[y], 1))
+    X = list(set(df[x]))
+    X.sort()
+    Y = pn(X)
+    plt.plot(X, Y, color=cinza, linestyle='-')
+    ci = 1.96*np.std(Y)/np.mean(Y)
+    plt.fill_between(X, (Y-ci), (Y+ci), color=cinza, alpha=.25)
 
     for i in range(lim_y.size):
-        plt.plot(df[x], np.repeat(lim_y[i], df[x].size, axis=0), color='black', linestyle='--')
-        plt.text(df[x].min(), lim_y[i]+0.1, lim_label[i])
+        plt.plot(X, np.repeat(lim_y[i], len(X), axis=0), color=terra, linestyle='--', linewidth=1)
+        plt.text(min(X), lim_y[i]+0.1, lim_label[i], color=terra)
+
+    return plt.gcf()
+
+
+def comp_velocidade_plot(x, y, lim_y, lim_label, xlabel, ylabel, **kwargs):
+    '''
+    comp_velocidade_plot Visualização de restrição de velocidade em múltiplas localizações.
+
+    Args:
+        x (text object): Nome da coluna no DataFrame contendo os dados do eixo x (e.g. velocidade).
+        y (text object): Nome da coluna no DataFrame contendo os dados do eixo y (e.g. bounce).
+        lim_y (List): Limites especificados (e.g. limites de severidade para bounce).
+        lim_label (List): Label dos limites especificados. Mesmo tamanho de lim_y.
+        xlabel (text object)
+        ylabel (text object)
+        kwargs (Dict): Dicionário contendo os dados a serem visualizados, onde as keys serão utilizadas como labels
+            e.g.: {'Km 80':df1, 'Km 160':df2}
+
+    Returns:
+        Figure
+    '''    
+    plt.figure()
+    plt.style.use(style)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    for label, df in kwargs.items():
+        plt.plot(df[x], df[y], marker=".", linestyle='None', label=label)
+
+    plt.legend(loc='best')
+
+    X = sum([df[x].tolist() for label, df in kwargs.items()], [])
+    X = list(set(X))
+    X.sort()
+
+    for i in range(lim_y.size):
+        plt.plot(X, np.repeat(lim_y[i], len(X), axis=0), color=terra, linestyle='--', linewidth=1)
+        plt.text(min(X), lim_y[i]+0.1, lim_label[i], color=terra)
 
     return plt.gcf()
