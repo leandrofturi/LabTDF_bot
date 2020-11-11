@@ -63,6 +63,38 @@ class MySQLpy:
         self.__connection.close()
 
 
+    def test_connection(self):
+        '''
+        test_connection Test connection
+        '''
+
+        try:
+            self.__connection = self.__engine.connect()
+        except sa.exc.SQLAlchemyError as e:
+            print(e.args)
+        else:
+            print("OK!")
+            self.__connection.close()
+
+
+    def show_databases(self):
+        '''
+        show_databases Show all databases names
+
+        Returns:
+            [List]: List of databases
+        '''
+
+        eng = sa.create_engine('mysql://{0}:{1}@{2}:{3}'.format(
+            self.__user, self.__pswd, self.__host, self.__port))
+        db = None
+        try:
+            db = sa.inspect(eng).get_schema_names()
+        except sa.exc.SQLAlchemyError as e:
+            print(e.args)
+        return db
+
+
     def table(self, table_name):
         '''
         table Take the representation of a table in a database.
@@ -78,6 +110,22 @@ class MySQLpy:
         tb = None
         try:
             tb = sa.Table(table_name, self.__metadata, autoload=True)
+        except sa.exc.SQLAlchemyError as e:
+            print(e.args)
+        return tb
+
+
+    def show_tablenames(self):
+        '''
+        show_tablenames Show all table names
+
+        Returns:
+            [List]: List of table names
+        '''
+
+        tb = None
+        try:
+            tb = sa.inspect(self.__engine).get_table_names()
         except sa.exc.SQLAlchemyError as e:
             print(e.args)
         return tb
