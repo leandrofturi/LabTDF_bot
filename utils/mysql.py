@@ -39,9 +39,10 @@ class MySQLpy:
         self.__port = os.getenv('MYSQL_PORT')
         self.__database = database
 
-        self.__engine = sa.create_engine('mysql://{0}:{1}@{2}:{3}/{4}'.format(
-            self.__user, self.__pswd, self.__host, self.__port, database))
-        self.__metadata = sa.MetaData(bind=self.__engine)
+        if not database is None:
+            self.__engine = sa.create_engine('mysql://{0}:{1}@{2}:{3}/{4}'.format(
+                self.__user, self.__pswd, self.__host, self.__port, database))
+            self.__metadata = sa.MetaData(bind=self.__engine)
 
 
     def __open(self):
@@ -68,12 +69,24 @@ class MySQLpy:
         test_connection Test connection
         '''
 
+        if self.__engine is None:
+            eng = sa.create_engine('mysql://{0}:{1}@{2}:{3}'.format(
+                self.__user, self.__pswd, self.__host, self.__port))
+            try:
+                con = eng.connect()
+            except:
+                print("Can't connect!")
+            else:
+                print("Connect!")
+                con.close()
+            return
+
         try:
             self.__connection = self.__engine.connect()
-        except sa.exc.SQLAlchemyError as e:
-            print(e.args)
+        except:
+            print("Can't connect!")
         else:
-            print("OK!")
+            print("Connect!")
             self.__connection.close()
 
 
@@ -107,6 +120,9 @@ class MySQLpy:
             sqlalchemy Table object: Representation of a table in database.
         '''
 
+        if self.__metadata is None:
+            return None;
+
         tb = None
         try:
             tb = sa.Table(table_name, self.__metadata, autoload=True)
@@ -115,7 +131,7 @@ class MySQLpy:
         return tb
 
 
-    def show_tablenames(self):
+    def show_tables(self):
         '''
         show_tablenames Show all table names
 
